@@ -1,6 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../constants/colors.dart';
-import '../flight/flight_screen.dart'; // pastikan file ini ada
+import 'package:firebase_auth/firebase_auth.dart';
+
+// ✅ Pastikan import ini sesuai dengan struktur folder Anda
+import '../../constants/colors.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
+import '../../models/destination_model.dart';
+import '../flight/flight_screen.dart';
+import '../profile_screen.dart';
+
+// ✅ Pastikan file ini ada dan nama class di dalamnya adalah 'TripHistoryScreen'
+import '../flight/trip_history_screen.dart'; 
+
+// ✅ WIDGET: Import widget kartu destinasi
+import '../../widgets/popular_destination.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,36 +24,44 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0; // untuk BottomNavigationBar
+  String _userName = "Traveler";
+  UserModel? _currentUser;
+  int _selectedIndex = 0;
 
-  // Fungsi untuk navigasi berdasarkan index
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await AuthService.instance.getStoredUser();
+    if (mounted && user != null) {
+      setState(() {
+        _currentUser = user;
+        _userName = user.name;
+      });
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-
+    
     switch (index) {
-      case 0:
-        // Home
-        break;
+      case 0: 
+        break; // Home (Diam di tempat)
       case 1:
-        // Navigasi ke halaman Flight
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const FlightScreen()),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const FlightScreen()));
         break;
       case 2:
-        // Nanti bisa diarahkan ke halaman "History" atau lainnya
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fitur History belum aktif')),
-        );
+        // ✅ FITUR AKTIF: Navigasi ke Halaman History
+        // Pastikan nama class di file trip_history_screen.dart adalah TripHistoryScreen
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const TripHistoryScreen()));
         break;
       case 3:
-        // Nanti diarahkan ke halaman Profile
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fitur Profile belum aktif')),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
         break;
     }
   }
@@ -47,300 +69,259 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppColors.primary,
-        title: const Text(
-          "Hi, Whenny!",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      backgroundColor: const Color(0xFFF8F9FD), // Background sedikit lebih terang
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. HEADER
+              _buildHeader(),
+              const SizedBox(height: 24),
+
+              // 2. SEARCH BAR
+              _buildSearchBar(),
+              const SizedBox(height: 24),
+
+              // 3. KATEGORI (Hanya Flight & More)
+              _buildCategories(),
+              const SizedBox(height: 32),
+
+              // 4. POPULAR DESTINATION (Vertikal & Lebih Menarik)
+              _buildPopularDestinationsSection(),
+              
+              const SizedBox(height: 20),
+            ],
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const CircleAvatar(
-              backgroundImage: AssetImage('assets/images/profile.png'),
-            ),
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  // ==========================================
+  // WIDGET BUILDERS
+  // ==========================================
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔍 Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search your destination',
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 🚌 Menu Icon Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // Flight → Navigasi ke FlightScreen
-                _MenuIcon(
-                  icon: Icons.flight,
-                  label: 'Flight',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const FlightScreen()),
-                    );
-                  },
-                ),
-                // Train → contoh belum aktif
-                _MenuIcon(
-                  icon: Icons.train,
-                  label: 'Train',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur Train belum aktif')),
-                    );
-                  },
-                ),
-                // Car → contoh belum aktif
-                _MenuIcon(
-                  icon: Icons.directions_car,
-                  label: 'Car',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur Car belum aktif')),
-                    );
-                  },
-                ),
-                _MenuIcon(
-                  icon: Icons.more_horiz,
-                  label: 'More',
-                  onTap: () {},
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-
-            // ✈️ Upcoming Trip
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  "Upcoming Trip",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "All",
-                  style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600),
-                )
-              ],
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.flight_takeoff, color: Colors.blue, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "CGK  →  PGK",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Jakarta  →  Pangkal Pinang",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "28 Oct 2025 | 15:30 - 17:25",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.more_vert),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // 🏝️ Popular Destination
             const Text(
-              "Popular Destination",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              "Welcome back,",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
-            const SizedBox(height: 10),
-
-            const _DestinationCard(
-              imagePath: 'assets/images/bangka.jpg',
-              title: 'Bangka Belitung',
-              subtitle: 'Indonesia',
-              rating: 5,
-            ),
-            const SizedBox(height: 15),
-            const _DestinationCard(
-              imagePath: 'assets/images/borobudur.jpg',
-              title: 'Borobudur',
-              subtitle: 'Central Java',
-              rating: 4,
+            const SizedBox(height: 6),
+            Text(
+              _userName,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E1E2C),
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
-      ),
+        // Container Profile dengan Shadow
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 24,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: const Icon(Icons.person, color: AppColors.primary, size: 28),
+          ),
+        ),
+      ],
+    );
+  }
 
-      // 🌍 Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primary,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.flight), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
         ],
+      ),
+      child: TextField(
+        readOnly: true,
+        onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const FlightScreen()));
+        },
+        decoration: InputDecoration(
+          icon: Icon(Icons.search_rounded, color: AppColors.primary.withOpacity(0.7), size: 26),
+          hintText: "Where do you want to go?",
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          border: InputBorder.none,
+          suffixIcon: Icon(Icons.tune_rounded, color: Colors.grey[400]),
+        ),
       ),
     );
   }
-}
 
-// 🧩 Custom widget untuk ikon menu (dengan fungsi klik)
-class _MenuIcon extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _MenuIcon({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+  Widget _buildCategories() {
+    Widget categoryItem(IconData icon, String label, Color color, VoidCallback onTap, {bool isPrimary = false}) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: isPrimary ? AppColors.primary : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                    BoxShadow(
+                      color: isPrimary ? AppColors.primary.withOpacity(0.3) : Colors.grey.withOpacity(0.08), 
+                      blurRadius: 12, 
+                      offset: const Offset(0, 6)
+                    ),
+                ],
+              ),
+              child: Icon(icon, color: isPrimary ? Colors.white : color, size: 30),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 28),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 10),
+            Text(
+              label, 
+              style: TextStyle(
+                fontWeight: FontWeight.w600, 
+                fontSize: 13,
+                color: Colors.grey[800]
+              )
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        categoryItem(Icons.flight_takeoff_rounded, "Flights", AppColors.primary, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const FlightScreen()));
+        }, isPrimary: true), 
+        
+        const SizedBox(width: 40), 
+        
+        categoryItem(Icons.grid_view_rounded, "More", Colors.grey, () {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Menu lainnya segera hadir")));
+        }),
+      ],
+    );
+  }
+
+  Widget _buildPopularDestinationsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Popular Destinations",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            TextButton.icon(
+              onPressed: (){}, 
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text("See All"),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            )
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text("Discover your next adventure", style: TextStyle(color: Colors.grey[600])),
+        const SizedBox(height: 20),
+        
+        // StreamBuilder untuk data destinasi
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('destinations').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ));
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Container(
+                height: 100,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                child: const Text("No destinations found yet."),
+              );
+            }
+
+            // ListView.builder Vertikal
+            return ListView.builder(
+              shrinkWrap: true, 
+              physics: const NeverScrollableScrollPhysics(), 
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final doc = snapshot.data!.docs[index];
+                final destination = DestinationModel.fromSnapshot(doc);
+                
+                return PopularDestinationCard(destination: destination);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5)),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white, 
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: Colors.grey[400],
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          elevation: 0, 
+          items: [
+            _buildNavBarItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
+            _buildNavBarItem(Icons.flight_rounded, Icons.flight_outlined, 'Flight', 1),
+            _buildNavBarItem(Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders', 2),
+            _buildNavBarItem(Icons.person_rounded, Icons.person_outline_rounded, 'Profile', 3),
+          ],
+        ),
       ),
     );
   }
-}
 
-// 🏝️ Custom widget untuk kartu destinasi
-class _DestinationCard extends StatelessWidget {
-  final String imagePath;
-  final String title;
-  final String subtitle;
-  final int rating;
-
-  const _DestinationCard({
-    required this.imagePath,
-    required this.title,
-    required this.subtitle,
-    required this.rating,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 3,
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Image.asset(
-            imagePath,
-            height: 180,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: Colors.grey)),
-                const SizedBox(height: 8),
-                Row(
-                  children: List.generate(
-                    rating,
-                    (index) =>
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  BottomNavigationBarItem _buildNavBarItem(IconData activeIcon, IconData inactiveIcon, String label, int index) {
+    return BottomNavigationBarItem(
+      icon: Icon(index == _selectedIndex ? activeIcon : inactiveIcon),
+      label: label,
     );
   }
 }
